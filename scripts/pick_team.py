@@ -1,5 +1,6 @@
 
 import pandas as pd
+import tabulate
 from gurobipy import Model, quicksum, GRB
 
 
@@ -94,26 +95,57 @@ def select_players(team):
         else:
             bench.append(team[i])
 
+    key = lambda p: p["element_type"]
+    starting = sorted(starting, key=key)
+    bench = sorted(bench, key=key)
+
     return starting, bench
 
 
-def print_lineup(starting, bench):
-    print "Starting 11"
-    print "======================"
-    for p in starting:
-        print p["first_name"], \
-            p["second_name"], "|", \
-            p["element_type"]
+def select_captains(starting):
+    key = lambda p: p["points_per_game"] * p["form"]
+    starting_sorted = sorted(starting, key=key)
+    captain = starting_sorted[-1]
+    vice_captain = starting_sorted[-2]
+    return captain, vice_captain
 
-    print "\nBench"
-    print "======================"
+
+def get_name(player):
+    return player["first_name"] + " " + player["second_name"]
+
+
+def print_lineup(starting, bench, cap, vice_cap):
+    pos = ["GK", "DEF", "MID", "FOR"]
+    s_names, b_names = list(), list()
+    s_pos, b_pos = list(), list()
+
+    cap_name = get_name(cap)
+    vice_cap_name = get_name(vice_cap)
+
+    for p in starting:
+        name = get_name(p)
+        if name == cap_name:
+            name += " (C)"
+        if name == vice_cap_name:
+            name += " (VC)"
+        s_names.append(name)
+        s_pos.append(pos[p["element_type"] - 1])
+
     for p in bench:
-        print p["first_name"], \
-            p["second_name"], "|", \
-            p["element_type"]
+        b_names.append(p["first_name"] + " " + p["second_name"])
+        b_pos.append(pos[p["element_type"] - 1])
+
+    kwargs = dict(headers=["Name", "Position"], tablefmt="fancy_grid")
+    s_tab = tabulate.tabulate(zip(s_names, s_pos), **kwargs)
+    b_tab = tabulate.tabulate(zip(b_names, b_pos), **kwargs)
+    print "Starting 11"
+    print s_tab
+    print "\nBench"
+    print b_tab
 
 
 if __name__ == "__main__":
     best_team = pick_team()
     starting, bench = select_players(best_team)
-    print_lineup(starting, bench)
+    cp, vcp = select_captains(starting)
+    print_lineup(starting, bench, cp, vcp)
