@@ -32,6 +32,7 @@ class Lineup(object):
             self.players = pd.read_json(PLAYERS_URL)
         else:
             self.players = players
+        return self
 
     def get_name(self, player_id):
         p = self.get_player(player_id)
@@ -91,3 +92,6 @@ class Lineup(object):
         ret_str += "\n\nBench\n"
         ret_str += b_tab
         return ret_str.encode("utf-8", "ignore")
+
+    def __contains__(self, item):
+        return item in self.starting or item in self.bench
