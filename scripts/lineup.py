@@ -10,12 +10,22 @@ PLAYERS_URL = "https://fantasy.premierleague.com/drf/elements/"
 
 class Lineup(object):
 
-    def __init__(self, starting, bench, cap, vice_cap):
-        self.starting = starting
-        self.bench = bench
-        self.cap = cap
-        self.vice_cap = vice_cap
-        self.players = None
+    def __init__(self, starting=None, bench=None, cap=None, vice_cap=None):
+        if starting is None:
+            starting = "lineups/latest.json"
+        if type(starting) == list:
+            self.starting = starting
+            self.bench = bench
+            self.cap = cap
+            self.vice_cap = vice_cap
+            self.players = None
+        elif type(starting) == str:
+            with open(starting) as f:
+                lu_dict = json.loads(f.read())
+                self.starting = lu_dict["starting"]
+                self.bench = lu_dict["bench"]
+                self.cap = lu_dict["captain"]
+                self.vice_cap = lu_dict["vice_captain"]
 
     def connect(self, players=None):
         if players is None:

@@ -1,6 +1,5 @@
 
 import pandas as pd
-import tabulate
 import lineup
 from gurobipy import Model, quicksum, GRB, tuplelist
 
@@ -105,7 +104,6 @@ def select_players(players, team):
     m.addConstr(quicksum(xs) == 11)
     m.addConstr(quicksum(gks) == 1)
     m.addConstr(quicksum(defs) >= 3)
-    # m.addConstr(quicksum(mids) == 4)
     m.addConstr(quicksum(fors) >= 1)
 
     m.optimize()
@@ -134,40 +132,6 @@ def select_captains(players, starting):
     return captain, vice_captain
 
 
-def get_name(player):
-    return player["first_name"] + " " + player["second_name"]
-
-
-def print_lineup(starting, bench, cap, vice_cap):
-    pos = ["GK", "DEF", "MID", "FOR"]
-    s_names, b_names = list(), list()
-    s_pos, b_pos = list(), list()
-
-    cap_name = get_name(cap)
-    vice_cap_name = get_name(vice_cap)
-
-    for p in starting:
-        name = get_name(p)
-        if name == cap_name:
-            name += " (C)"
-        if name == vice_cap_name:
-            name += " (VC)"
-        s_names.append(name)
-        s_pos.append(pos[p["element_type"] - 1])
-
-    for p in bench:
-        b_names.append(p["first_name"] + " " + p["second_name"])
-        b_pos.append(pos[p["element_type"] - 1])
-
-    kwargs = dict(headers=["Name", "Position"], tablefmt="fancy_grid")
-    s_tab = tabulate.tabulate(zip(s_names, s_pos), **kwargs)
-    b_tab = tabulate.tabulate(zip(b_names, b_pos), **kwargs)
-    print "Starting 11"
-    print s_tab
-    print "\nBench"
-    print b_tab
-
-
 if __name__ == "__main__":
     players = load_players()
     best_team = pick_team(players)
@@ -177,4 +141,3 @@ if __name__ == "__main__":
     lu.connect(players)
     lu.write()
     print lu
-    # print_lineup(starting, bench, cp, vcp)
