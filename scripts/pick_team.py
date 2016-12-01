@@ -5,6 +5,14 @@ import lineup
 from gurobipy import Model, quicksum, GRB, tuplelist
 
 
+PLAYERS_URL = "https://fantasy.premierleague.com/drf/elements/"
+
+
+def load_players():
+    players = pd.read_json(PLAYERS_URL)
+    return players.set_index("code", drop=False)
+
+
 def per_pos_team_constr(m, tcodes, team_pos):
     for tc in tcodes:
         for i in xrange(1, 5):
@@ -35,8 +43,7 @@ def player_objective(player, thresh):
     return obj
 
 
-def pick_team():
-    players = pd.read_json("https://fantasy.premierleague.com/drf/elements/")
+def pick_team(players):
     m = Model("pick_team")
     m.params.OutputFlag = 0
     xs = list()
@@ -74,21 +81,21 @@ def pick_team():
     best_team = list()
     for i, v in enumerate(xs):
         if v.x > 0.1:
-            best_team.append(players.iloc[i])
+            best_team.append(players.iloc[i]["code"])
 
     return best_team
 
 
-def select_players(team):
+def select_players(players, team):
     m = Model("select_players")
     m.params.OutputFlag = 0
     xs = list()
     gks, defs, mids, fors = [], [], [], []
     assigns = [gks, defs, mids, fors]
 
-    for player in team:
-        obj = player_objective(player, 100)
-        ptype = player["element_type"]
+    for i in team:
+        obj = player_objective(players.loc[i], 100)
+        ptype = players.loc[i]["element_type"]
         v = m.addVar(vtype=GRB.BINARY, obj=obj)
         assigns[ptype - 1].append(v)
         xs.append(v)
@@ -112,15 +119,15 @@ def select_players(team):
         else:
             bench.append(team[i])
 
-    key = lambda p: p["element_type"]
+    key = lambda p: players.loc[p]["element_type"]
     starting = sorted(starting, key=key)
     bench = sorted(bench, key=key)
 
     return starting, bench
 
 
-def select_captains(starting):
-    key = lambda p: p["points_per_game"] * p["form"]
+def select_captains(players, starting):
+    key = lambda p: players.loc[p]["points_per_game"] * players.loc[p]["form"]
     starting_sorted = sorted(starting, key=key)
     captain = starting_sorted[-1]
     vice_captain = starting_sorted[-2]
@@ -162,7 +169,12 @@ def print_lineup(starting, bench, cap, vice_cap):
 
 
 if __name__ == "__main__":
-    best_team = pick_team()
-    starting, bench = select_players(best_team)
-    cp, vcp = select_captains(starting)
-    print_lineup(starting, bench, cp, vcp)
+    players = load_players()
+    best_team = pick_team(players)
+    starting, bench = select_players(players, best_team)
+    cp, vcp = select_captains(players, starting)
+    lu = lineup.Lineup(starting, bench, cp, vcp)
+    lu.connect(players)
+    lu.write()
+    print lu
+    # print_lineup(starting, bench, cp, vcp)
