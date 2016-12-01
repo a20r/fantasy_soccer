@@ -1,6 +1,7 @@
 
 import pandas as pd
 import tabulate
+import lineup
 from gurobipy import Model, quicksum, GRB, tuplelist
 
 
