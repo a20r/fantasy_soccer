@@ -78,11 +78,14 @@ def pick_team(players):
     m.optimize()
 
     best_team = list()
+    prices = dict()
     for i, v in enumerate(xs):
         if v.x > 0.1:
-            best_team.append(players.iloc[i]["code"])
+            pcode = players.iloc[i]["code"]
+            best_team.append(pcode)
+            prices[pcode] = players.iloc[i]["now_cost"]
 
-    return best_team
+    return best_team, prices
 
 
 def select_players(players, team):
@@ -132,12 +135,17 @@ def select_captains(players, starting):
     return captain, vice_captain
 
 
-if __name__ == "__main__":
-    players = load_players()
-    best_team = pick_team(players)
-    starting, bench = select_players(players, best_team)
+def construct_lineup(players, team, prices):
+    starting, bench = select_players(players, team)
     cp, vcp = select_captains(players, starting)
-    lu = lineup.Lineup(starting, bench, cp, vcp)
+    lu = lineup.Lineup(starting, bench, cp, vcp, prices)
     lu.connect(players)
     lu.write()
+    return lu
+
+
+if __name__ == "__main__":
+    players = load_players()
+    best_team, prices = pick_team(players)
+    lu = construct_lineup(players, best_team, prices)
     print lu

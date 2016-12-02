@@ -10,7 +10,8 @@ PLAYERS_URL = "https://fantasy.premierleague.com/drf/elements/"
 
 class Lineup(object):
 
-    def __init__(self, starting=None, bench=None, cap=None, vice_cap=None):
+    def __init__(self, starting=None, bench=None, cap=None, vice_cap=None,
+                 prices=None):
         if starting is None:
             starting = "lineups/latest.json"
         if type(starting) == list:
@@ -18,6 +19,7 @@ class Lineup(object):
             self.bench = bench
             self.cap = cap
             self.vice_cap = vice_cap
+            self.prices = prices
             self.players = None
         elif type(starting) == str:
             with open(starting) as f:
@@ -26,6 +28,7 @@ class Lineup(object):
                 self.bench = lu_dict["bench"]
                 self.cap = lu_dict["captain"]
                 self.vice_cap = lu_dict["vice_captain"]
+                self.prices = lu_dict["prices"]
 
     def connect(self, players=None):
         if players is None:
@@ -39,9 +42,23 @@ class Lineup(object):
         return p["first_name"] + " " + p["second_name"]
 
     def get_player(self, player_id):
-        if self.players is None:
-            raise AttributeError("Lineup is not connected to a player DB")
         return self.players.loc[player_id]
+
+    def get_cur_cost(self, player_id):
+        return self.players.loc[player_id]["now_cost"]
+
+    def get_org_cost(self, player_id):
+        return self.prices[str(player_id)]
+
+    def get_selling_price(self, player_id):
+        cur_cost = self.get_cur_cost(player_id)
+        org_cost = self.get_org_cost(player_id)
+        if cur_cost < org_cost:
+            return cur_cost
+        else:
+            profit = cur_cost - org_cost
+            fee = profit / 2 + 1
+            return org_cost + profit - fee
 
     def to_dict(self):
         lineup_dict = dict()
@@ -49,6 +66,7 @@ class Lineup(object):
         lineup_dict["bench"] = self.bench
         lineup_dict["captain"] = self.cap
         lineup_dict["vice_captain"] = self.vice_cap
+        lineup_dict["prices"] = self.prices
         return lineup_dict
 
     def write(self):
