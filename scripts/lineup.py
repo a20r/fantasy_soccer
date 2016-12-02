@@ -33,6 +33,7 @@ class Lineup(object):
     def connect(self, players=None):
         if players is None:
             self.players = pd.read_json(PLAYERS_URL)
+            self.players.set_index("code", drop=False, inplace=True)
         else:
             self.players = players
         return self
@@ -83,6 +84,8 @@ class Lineup(object):
         pos = ["GK", "DEF", "MID", "FOR"]
         s_names, b_names = list(), list()
         s_pos, b_pos = list(), list()
+        s_form, b_form = [], []
+        s_ppg, b_ppg = [], []
 
         cap_name = self.get_name(self.cap)
         vice_cap_name = self.get_name(self.vice_cap)
@@ -95,21 +98,30 @@ class Lineup(object):
                 name += " (VC)"
             s_names.append(name)
             s_pos.append(pos[self.players.loc[i]["element_type"] - 1])
+            s_form.append(self.players.loc[i]["form"])
+            s_ppg.append(self.players.loc[i]["points_per_game"])
 
         for i in self.bench:
             p = self.get_player(i)
             b_names.append(p["first_name"] + " " + p["second_name"])
             b_pos.append(pos[p["element_type"] - 1])
+            b_form.append(self.players.loc[i]["form"])
+            b_ppg.append(self.players.loc[i]["points_per_game"])
 
-        kwargs = dict(headers=["Name", "Position"], tablefmt="fancy_grid")
-        s_tab = tabulate.tabulate(zip(s_names, s_pos), **kwargs)
-        b_tab = tabulate.tabulate(zip(b_names, b_pos), **kwargs)
+        headers = ["Name", "Position", "Form", "PPG"]
+        kwargs = dict(headers=headers, tablefmt="fancy_grid")
+        s_tab_data = zip(s_names, s_pos, s_form, s_ppg)
+        b_tab_data = zip(b_names, b_pos, b_form, b_ppg)
+        s_tab = tabulate.tabulate(s_tab_data, **kwargs)
+        b_tab = tabulate.tabulate(b_tab_data, **kwargs)
         ret_str = unicode()
         ret_str += "Starting 11\n"
         ret_str += s_tab
         ret_str += "\n\nBench\n"
         ret_str += b_tab
         return ret_str.encode("utf-8", "ignore")
+
+
 
     def __contains__(self, item):
         return item in self.starting or item in self.bench
